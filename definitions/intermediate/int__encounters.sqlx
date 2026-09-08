@@ -5,8 +5,11 @@ config {
 
 WITH cte_dupes AS (
     /*
-    some encounter IDs are duplicated due to a bug in the Synthea data generation process.
-    we flag duplicates here in order to remove them from downstream models, as there is no way to determine which encounter among duplicates is referenced by a foreign key to the encounters table.
+    defensive de-duplication: if the same FHIR Encounter.id ever appears more
+    than once in stg_fhir__encounter (e.g. a re-exported/updated resource
+    version landing as a second row), we can't reliably tell which copy any
+    foreign key was meant to reference, so we drop all copies here rather
+    than guess and silently produce two visit_occurrence rows for one visit.
     */
     SELECT encounter_id AS dupe_encounter_id
     FROM ${ref("stg_fhir__encounter")}

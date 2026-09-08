@@ -4,10 +4,10 @@ A reference Dataform/BigQuery pipeline that transforms FHIR data - landed in
 BigQuery via the Google Cloud Healthcare API's **Analytics V2** export (one
 BigQuery table per FHIR resource type, full FHIR structure preserved as
 nested `STRUCT`/`ARRAY` columns) - into the [OHDSI OMOP Common Data Model
-(CDM) v5.4](https://ohdsi.github.io/CommonDataModel/). Built as a portfolio
-reference asset for a biodata platform project (KFUPM); not wired to a live
-GCP project - every project/dataset name in this repo is a documented
-placeholder (see `workflow_settings.yaml`).
+(CDM) v5.4](https://ohdsi.github.io/CommonDataModel/). Built as a general
+-purpose reference/portfolio asset, not wired to a live GCP project - every
+project/dataset name in this repo is a documented placeholder (see
+`workflow_settings.yaml`).
 
 ## What this is
 
@@ -52,9 +52,9 @@ omop/                THE CONFORMED "SILVER" LAYER: all 34 OMOP CDM v5.4
                     the intended integration point for anything else (a BI
                     tool, an OHDSI ATLAS/WebAPI instance, a downstream
                     "gold" layer of use-case-specific marts). Building that
-                    gold layer (e.g. a KFUPM-specific cohort or analytics
-                    mart) is intentionally OUT OF SCOPE here - a natural
-                    next repo, not part of this one.
+                    gold layer (e.g. a specific cohort or analytics mart for
+                    your use case) is intentionally OUT OF SCOPE here - a
+                    natural next repo, not part of this one.
 ```
 
 ## Setup

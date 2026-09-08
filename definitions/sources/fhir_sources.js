@@ -18,11 +18,11 @@
 
 const dataset = dataform.projectConfig.vars.fhirDataset;
 
-// The 10 resource types the staging/fhir layer builds flattening views for
-// (per the KFUPM biodata pipeline scope), plus 3 extra resource types used
-// by minimal stub staging views (see definitions/staging/fhir/README notes
-// inline in stg_fhir__device.sqlx / stg_fhir__immunization.sqlx /
-// stg_fhir__coverage.sqlx) so the full OMOP CDM layer still compiles.
+// The 10 core resource types the staging/fhir layer builds flattening views
+// for, plus 3 extra resource types used by minimal stub staging views (see
+// definitions/staging/fhir/README notes inline in stg_fhir__device.sqlx /
+// stg_fhir__immunization.sqlx / stg_fhir__coverage.sqlx) so the full OMOP
+// CDM layer still compiles.
 const resources = [
   "Patient",
   "Encounter",
