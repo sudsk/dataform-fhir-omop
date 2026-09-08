@@ -1,0 +1,13 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    CAST(null AS INT64) AS fact_relationship_id
+    , CAST(null AS INT64) AS domain_concept_id_1
+    , CAST(null AS INT64) AS fact_id_1
+    , CAST(null AS INT64) AS domain_concept_id_2
+    , CAST(null AS INT64) AS fact_id_2
+    , CAST(null AS INT64) AS relationship_concept_id
+WHERE 1 = 0

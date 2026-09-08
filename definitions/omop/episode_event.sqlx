@@ -1,0 +1,11 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    CAST(null AS INT64) AS episode_event_id
+    , CAST(null AS INT64) AS episode_id
+    , CAST(null AS INT64) AS event_id
+    , CAST(null AS INT64) AS episode_event_field_concept_id
+WHERE 1 = 0

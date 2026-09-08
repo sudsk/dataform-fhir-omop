@@ -1,0 +1,22 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    CAST(null AS INT64) AS specimen_id
+    , CAST(null AS INT64) AS person_id
+    , CAST(null AS INT64) AS specimen_concept_id
+    , CAST(null AS INT64) AS specimen_type_concept_id
+    , CAST(null AS DATE) AS specimen_date
+    , CAST(null AS TIMESTAMP) AS specimen_datetime
+    , CAST(null AS FLOAT64) AS quantity
+    , CAST(null AS INT64) AS unit_concept_id
+    , CAST(null AS INT64) AS anatomic_site_concept_id
+    , CAST(null AS INT64) AS disease_status_concept_id
+    , CAST(null AS STRING) AS specimen_source_id
+    , CAST(null AS STRING) AS specimen_source_value
+    , CAST(null AS STRING) AS unit_source_value
+    , CAST(null AS STRING) AS anatomic_site_source_value
+    , CAST(null AS STRING) AS disease_status_source_value
+WHERE 1 = 0

@@ -1,0 +1,12 @@
+{
+  "name": "dataform-fhir-omop",
+  "description": "Dataform/BigQuery pipeline: FHIR Analytics V2 export -> OHDSI OMOP CDM v5.4",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@dataform/core": "^3.0.9"
+  },
+  "devDependencies": {
+    "@dataform/cli": "^3.0.69"
+  }
+}

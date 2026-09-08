@@ -1,0 +1,52 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Practitioner resource into one row per practitioner, shaped to feed intermediate/int__provider.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+--
+-- Practitioner has no `specialty` field in FHIR core (specialty lives on
+-- PractitionerRole, a separate resource this pipeline does not join in) -
+-- provider_specialty is left NULL, a documented gap; join in
+-- PractitionerRole here if you need it.
+
+SELECT
+    p.id AS provider_id
+
+    -- name is an array of HumanName; prefer the 'official' use, else the first
+    , (
+        SELECT CONCAT(
+            COALESCE((SELECT g FROM UNNEST(n.given) AS g LIMIT 1), ''),
+            ' ',
+            COALESCE(n.family, '')
+        )
+        FROM UNNEST(p.name) AS n
+        ORDER BY (n.use = 'official') DESC
+        LIMIT 1
+    ) AS provider_name
+
+    , p.gender AS provider_gender
+
+    -- no FHIR core specialty on Practitioner - see note above
+    , CAST(NULL AS STRING) AS provider_specialty
+
+    , (
+        SELECT a.state
+        FROM UNNEST(p.address) AS a
+        LIMIT 1
+    ) AS provider_state
+    , (
+        SELECT a.city
+        FROM UNNEST(p.address) AS a
+        LIMIT 1
+    ) AS provider_city
+    , (
+        SELECT a.postalCode
+        FROM UNNEST(p.address) AS a
+        LIMIT 1
+    ) AS provider_zip
+
+FROM ${ref("Practitioner")} AS p

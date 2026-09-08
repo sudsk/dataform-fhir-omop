@@ -1,0 +1,89 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Patient resource (Analytics V2 export) into one row per patient, shaped to feed intermediate/int__person.sqlx and intermediate/int__location.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data. Analytics V2 exports one table per resource type with the full
+-- FHIR resource preserved as nested STRUCT/ARRAY columns (name, address,
+-- identifier, extension are all REPEATED STRUCT fields).
+--
+-- Race/ethnicity: FHIR core Patient has no race/ethnicity fields. US Core
+-- (a common FHIR IG, likely relevant for a US-flavoured OMOP mapping) adds
+-- them as Patient.extension entries with url
+-- 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race' (and
+-- '...-ethnicity'), each carrying nested extensions named 'ombCategory'
+-- (a Coding: system/code/display) and 'text' (a display string). The
+-- extraction below assumes that shape; if your FHIR store doesn't populate
+-- US Core race/ethnicity extensions, race_source_value/ethnicity_source_value
+-- will simply come back NULL and downstream vocabulary mapping falls back to
+-- the "unknown" concept (0), which is a safe default.
+
+SELECT
+    p.id AS patient_id
+
+    -- --- demographics ---
+    , SAFE_CAST(p.birthDate AS DATE) AS birth_date
+    , p.gender AS patient_gender
+    , SAFE_CAST(p.deceasedDateTime AS TIMESTAMP) AS deceased_datetime
+    , p.deceasedBoolean AS deceased_boolean
+
+    -- --- US Core race extension: extension[url=...-race].extension[url='ombCategory'].valueCoding.display ---
+    , (
+        SELECT oc.valueCoding.display
+        FROM UNNEST(p.extension) AS ext
+        CROSS JOIN UNNEST(ext.extension) AS oc
+        WHERE
+            ext.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race'
+            AND oc.url = 'ombCategory'
+        LIMIT 1
+    ) AS race
+
+    -- --- US Core ethnicity extension: same shape, different extension url ---
+    , (
+        SELECT oc.valueCoding.display
+        FROM UNNEST(p.extension) AS ext
+        CROSS JOIN UNNEST(ext.extension) AS oc
+        WHERE
+            ext.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity'
+            AND oc.url = 'ombCategory'
+        LIMIT 1
+    ) AS ethnicity
+
+    -- --- address: take the first "home"-use address, else the first address ---
+    , (
+        SELECT a.line[SAFE_OFFSET(0)]
+        FROM UNNEST(p.address) AS a
+        ORDER BY (a.use = 'home') DESC
+        LIMIT 1
+    ) AS patient_address
+    , (
+        SELECT a.city
+        FROM UNNEST(p.address) AS a
+        ORDER BY (a.use = 'home') DESC
+        LIMIT 1
+    ) AS patient_city
+    -- full US state name (dbt-synthea's downstream int__person joins this
+    -- against stg_map__states.state_name, not the 2-letter abbreviation) -
+    -- Analytics V2 typically carries whatever your FHIR store stored here,
+    -- which may already be a 2-letter code; adjust the join key in
+    -- int__person.sqlx / int__location.sqlx if so.
+    , (
+        SELECT a.state
+        FROM UNNEST(p.address) AS a
+        ORDER BY (a.use = 'home') DESC
+        LIMIT 1
+    ) AS patient_state
+    , (
+        SELECT a.postalCode
+        FROM UNNEST(p.address) AS a
+        ORDER BY (a.use = 'home') DESC
+        LIMIT 1
+    ) AS patient_zip
+    -- FHIR address has no standard "county" field; US Core sometimes carries
+    -- it as an address.extension - left NULL here as a documented gap.
+    , CAST(NULL AS STRING) AS patient_county
+
+FROM ${ref("Patient")} AS p

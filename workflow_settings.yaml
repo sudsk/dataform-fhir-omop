@@ -1,0 +1,43 @@
+# workflow_settings.yaml - Dataform project configuration (modern CLI format)
+#
+# *** ALL VALUES BELOW ARE PLACEHOLDERS ***
+# This is a portfolio/reference project, not wired to a live GCP project.
+# Before running `dataform run`, replace:
+#   - defaultProject  with your real GCP project ID
+#   - defaultLocation with your BigQuery dataset location (e.g. "US", "EU", "us-central1")
+#   - every dataset name under `vars` with the real datasets in your project
+#
+# Layer -> dataset mapping used throughout definitions/:
+#   vars.fhirDataset       - source: Cloud Healthcare API Analytics V2 export
+#                             (one table per FHIR resource type). Declared,
+#                             NOT created/managed by this Dataform project.
+#   vars.vocabSeedDataset  - source: OMOP vocabulary CSVs loaded via
+#                             scripts/load_seeds_to_bq.sh. Declared, NOT
+#                             created/managed by this Dataform project.
+#   vars.stgFhirDataset    - output: staging/fhir/*.sqlx views
+#   vars.stgVocabDataset   - output: staging/vocabulary/*.sqlx and
+#                             staging/map/*.sqlx views
+#   vars.intDataset        - output: intermediate/*.sqlx tables (transient
+#                             scaffolding, not meant for direct consumption)
+#   vars.cdmDataset        - output: omop/*.sqlx tables (the conformed OMOP
+#                             CDM v5.4 "silver" layer)
+
+defaultProject: "your-gcp-project"        # <-- REPLACE with your real GCP project ID
+defaultLocation: "US"                     # <-- REPLACE with your BigQuery location
+# dataformCoreVersion is intentionally NOT set here: the Dataform CLI's
+# package-manager-free mode (dataformCoreVersion in this file) requires the
+# project to have NO package.json/node_modules at all, installing
+# @dataform/core into a temp dir at compile time instead. This project
+# instead pins @dataform/core the classic way, via package.json - run
+# `npm install` once (see README) and the CLI will use that version.
+
+vars:
+  fhirDataset: "fhir_analytics"           # <-- REPLACE: source, FHIR Analytics V2 export
+  vocabSeedDataset: "vocab_seeds"         # <-- REPLACE: source, OMOP vocabulary CSVs loaded via bq load
+  stgFhirDataset: "stg_fhir"              # <-- REPLACE if desired: FHIR flattening views
+  stgVocabDataset: "stg_vocabulary"       # <-- REPLACE if desired: vocabulary/map staging views
+  intDataset: "int_omop"                  # <-- REPLACE if desired: intermediate scaffolding tables
+  cdmDataset: "cdm_omop"                  # <-- REPLACE if desired: final OMOP CDM tables
+
+defaultDataset: "cdm_omop"                # <-- should match vars.cdmDataset above
+defaultAssertionDataset: "dataform_assertions"

@@ -1,0 +1,36 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Location resource into one row per physical location. Standalone reference view - see note below."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+--
+-- NOTE: OHDSI/dbt-synthea's intermediate/int__location.sqlx (which feeds
+-- omop.location and omop.care_site) builds locations purely by deduplicating
+-- addresses out of the patient and organization source data - it never
+-- reads a standalone "locations" source table, because Synthea CSVs don't
+-- have one. This view is built anyway because Location is one of the FHIR
+-- resource types explicitly in scope for this project's staging layer -
+-- it's a useful extension point (e.g. if you want physical facility/room/bed
+-- locations referenced by Encounter.location, which the ported
+-- int__location.sqlx currently does not use), but it is NOT wired into the
+-- intermediate/omop layers as ported. To use it, join it into
+-- intermediate/int__location.sqlx alongside the patient/organization address
+-- sources.
+
+SELECT
+    l.id AS location_id
+    , l.name AS location_name
+    , l.address.line[SAFE_OFFSET(0)] AS location_address
+    , l.address.city AS location_city
+    , l.address.state AS location_state
+    , l.address.postalCode AS location_zip
+    , COALESCE(
+        l.managingOrganization.organizationId,
+        REGEXP_EXTRACT(l.managingOrganization.reference, r'Organization/(.+)')
+    ) AS organization_id
+
+FROM ${ref("Location")} AS l

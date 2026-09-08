@@ -1,0 +1,44 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Observation resource into one row per observation, shaped to feed intermediate/int__observation_observations.sqlx and intermediate/int__measurement_observations.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+--
+-- Observation.value is a FHIR "open" [x] type (valueQuantity / valueString /
+-- valueCodeableConcept / ...). This flattens only the two most common
+-- clinical-observation shapes (valueQuantity, valueString) into a single
+-- observation_value/observation_units pair - a component-level
+-- (vitals-panel) observation would need the array-of-components idiom from
+-- fhir-dbt-utils' value_from_component macro instead, which this reference
+-- pipeline does not replicate (see README caveats).
+
+SELECT
+    o.id AS observation_id
+    , COALESCE(
+        o.subject.patientId,
+        REGEXP_EXTRACT(o.subject.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        o.encounter.encounterId,
+        REGEXP_EXTRACT(o.encounter.reference, r'Encounter/(.+)')
+    ) AS encounter_id
+
+    , SAFE_CAST(o.effectiveDateTime AS DATE) AS observation_date
+    , SAFE_CAST(o.effectiveDateTime AS TIMESTAMP) AS observation_datetime
+
+    -- Observation.code is a single CodeableConcept (typically LOINC)
+    , (SELECT code.code FROM UNNEST(o.code.coding) AS code LIMIT 1) AS observation_code
+    , (SELECT code.display FROM UNNEST(o.code.coding) AS code LIMIT 1) AS observation_description
+
+    -- value: prefer numeric valueQuantity, fall back to valueString
+    , COALESCE(
+        CAST(o.valueQuantity.value AS STRING),
+        o.valueString
+    ) AS observation_value
+    , o.valueQuantity.unit AS observation_units
+
+FROM ${ref("Observation")} AS o

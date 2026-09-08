@@ -1,0 +1,23 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Organization resource into one row per organization, shaped to feed intermediate/int__location.sqlx and omop/care_site.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+
+SELECT
+    o.id AS organization_id
+    , o.name AS organization_name
+    , (
+        SELECT a.line[SAFE_OFFSET(0)]
+        FROM UNNEST(o.address) AS a
+        LIMIT 1
+    ) AS organization_address
+    , (SELECT a.city FROM UNNEST(o.address) AS a LIMIT 1) AS organization_city
+    , (SELECT a.state FROM UNNEST(o.address) AS a LIMIT 1) AS organization_state
+    , (SELECT a.postalCode FROM UNNEST(o.address) AS a LIMIT 1) AS organization_zip
+
+FROM ${ref("Organization")} AS o

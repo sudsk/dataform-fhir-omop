@@ -1,0 +1,20 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    CAST(null AS INT64) AS episode_id
+    , CAST(null AS INT64) AS person_id
+    , CAST(null AS INT64) AS episode_concept_id
+    , CAST(null AS DATE) AS episode_start_date
+    , CAST(null AS TIMESTAMP) AS episode_start_datetime
+    , CAST(null AS DATE) AS episode_end_date
+    , CAST(null AS TIMESTAMP) AS episode_end_datetime
+    , CAST(null AS INT64) AS episode_parent_id
+    , CAST(null AS INT64) AS episode_number
+    , CAST(null AS INT64) AS episode_object_concept_id
+    , CAST(null AS INT64) AS episode_type_concept_id
+    , CAST(null AS STRING) AS episode_source_value
+    , CAST(null AS INT64) AS episode_source_concept_id
+WHERE 1 = 0

@@ -1,0 +1,37 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Procedure resource into one row per procedure, shaped to feed intermediate/int__procedure_occurrence.sqlx and intermediate/int__measurement_procedures.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+--
+-- Procedure.performed is an [x] type: performedDateTime (point in time) or
+-- performedPeriod (start/end). This handles both, coalescing to
+-- performedDateTime for a point-in-time procedure with no stop date.
+
+SELECT
+    p.id AS procedure_id
+    , COALESCE(
+        p.subject.patientId,
+        REGEXP_EXTRACT(p.subject.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        p.encounter.encounterId,
+        REGEXP_EXTRACT(p.encounter.reference, r'Encounter/(.+)')
+    ) AS encounter_id
+
+    , SAFE_CAST(COALESCE(p.performedPeriod.start, p.performedDateTime) AS DATE) AS procedure_start_date
+    , SAFE_CAST(COALESCE(p.performedPeriod.start, p.performedDateTime) AS TIMESTAMP) AS procedure_start_datetime
+    , SAFE_CAST(COALESCE(p.performedPeriod.end, p.performedDateTime) AS DATE) AS procedure_stop_date
+    , SAFE_CAST(COALESCE(p.performedPeriod.end, p.performedDateTime) AS TIMESTAMP) AS procedure_stop_datetime
+
+    , (SELECT code.code FROM UNNEST(p.code.coding) AS code LIMIT 1) AS procedure_code
+    , (SELECT code.display FROM UNNEST(p.code.coding) AS code LIMIT 1) AS procedure_description
+
+    -- no FHIR core cost equivalent - documented gap
+    , CAST(NULL AS NUMERIC) AS procedure_base_cost
+
+FROM ${ref("Procedure")} AS p

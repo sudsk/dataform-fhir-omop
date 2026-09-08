@@ -1,0 +1,30 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    drug_exposure_id
+    , person_id
+    , drug_concept_id
+    , drug_exposure_start_date
+    , drug_exposure_start_datetime
+    , drug_exposure_end_date
+    , drug_exposure_end_datetime
+    , verbatim_end_date
+    , drug_type_concept_id
+    , CAST(null AS STRING) AS stop_reason
+    , CAST(null AS INT64) AS refills
+    , CAST(null AS FLOAT64) AS quantity
+    , days_supply
+    , CAST(null AS STRING) AS sig
+    , CAST(null AS INT64) AS route_concept_id
+    , CAST(null AS STRING) AS lot_number
+    , provider_id
+    , visit_occurrence_id
+    , visit_detail_id
+    , SUBSTR(drug_source_value, 1, 50) AS drug_source_value
+    , drug_source_concept_id
+    , CAST(null AS STRING) AS route_source_value
+    , CAST(null AS STRING) AS dose_unit_source_value
+FROM ${ref("int__drug_exposure")}

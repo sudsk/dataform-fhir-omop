@@ -1,0 +1,7 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgVocabDataset,
+  description: "Thin passthrough view over the source_to_concept_map_seed table (custom source->standard concept mappings not yet in the standard OMOP vocabulary). Ported from OHDSI/dbt-synthea's stg_vocabulary__source_to_concept_map.sql."
+}
+
+SELECT * FROM ${ref("source_to_concept_map_seed")}

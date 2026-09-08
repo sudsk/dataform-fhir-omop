@@ -1,0 +1,7 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgVocabDataset,
+  description: "Thin passthrough view over the states_seed lookup table (US state name <-> abbreviation). Ported from OHDSI/dbt-synthea's stg_map__states.sql."
+}
+
+SELECT * FROM ${ref("states_seed")}

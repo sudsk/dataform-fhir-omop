@@ -1,0 +1,34 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "STUB: minimal Coverage flattening view, kept only so omop/payer_plan_period.sqlx compiles and runs (returning zero rows) out of the box."
+}
+
+-- SCOPE NOTE: Coverage was not one of the 10 FHIR resources in this
+-- project's required staging scope, so this is a real-but-minimal flattening
+-- view rather than the fully-considered treatment given to
+-- stg_fhir__*.sqlx for the in-scope resources. It stands in for BOTH of
+-- dbt-synthea's payers.csv and payer_transitions.csv (the FHIR analog,
+-- Coverage, combines payer identity and the patient's coverage period into
+-- one resource) - see the note in omop/payer_plan_period.sqlx.
+
+SELECT
+    c.id AS coverage_id
+    , COALESCE(
+        c.beneficiary.patientId,
+        REGEXP_EXTRACT(c.beneficiary.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        (SELECT pay.organizationId FROM UNNEST(c.payor) AS pay LIMIT 1),
+        (SELECT REGEXP_EXTRACT(pay.reference, r'Organization/(.+)') FROM UNNEST(c.payor) AS pay LIMIT 1)
+    ) AS payer_id
+    -- Coverage.payor is a Reference, not a display name - resolving payer_name
+    -- would require joining stg_fhir__organization on payer_id; left as the
+    -- raw id here to keep this stub self-contained.
+    , CAST(NULL AS STRING) AS payer_name
+    , SAFE_CAST(c.period.start AS DATE) AS coverage_start_date
+    , SAFE_CAST(c.period.start AS TIMESTAMP) AS coverage_start_datetime
+    , SAFE_CAST(c.period.end AS DATE) AS coverage_end_date
+    , SAFE_CAST(c.period.end AS TIMESTAMP) AS coverage_end_datetime
+
+FROM ${ref("Coverage")} AS c

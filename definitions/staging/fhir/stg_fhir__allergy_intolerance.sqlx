@@ -1,0 +1,27 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR AllergyIntolerance resource into one row per allergy, shaped to feed intermediate/int__observation_allergies.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+
+SELECT
+    a.id AS allergy_id
+    , COALESCE(
+        a.patient.patientId,
+        REGEXP_EXTRACT(a.patient.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        a.encounter.encounterId,
+        REGEXP_EXTRACT(a.encounter.reference, r'Encounter/(.+)')
+    ) AS encounter_id
+
+    , SAFE_CAST(a.onsetDateTime AS DATE) AS allergy_start_date
+
+    , (SELECT code.code FROM UNNEST(a.code.coding) AS code LIMIT 1) AS allergy_code
+    , (SELECT code.display FROM UNNEST(a.code.coding) AS code LIMIT 1) AS allergy_description
+
+FROM ${ref("AllergyIntolerance")} AS a

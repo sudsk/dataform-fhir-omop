@@ -1,0 +1,32 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "STUB: minimal Immunization flattening view, kept only so intermediate/int__drug_immunisations.sqlx (which UNIONs into int__drug_exposure) compiles and runs (returning zero rows) out of the box."
+}
+
+-- SCOPE NOTE: Immunization was not one of the 10 FHIR resources in this
+-- project's required staging scope, so this is a real-but-minimal flattening
+-- view rather than the fully-considered treatment given to
+-- stg_fhir__*.sqlx for the in-scope resources. The field paths below follow
+-- the same Analytics V2 idioms used elsewhere in this project and should
+-- work as-is against a standard export, but they haven't been exercised as
+-- carefully. Column shape matches what
+-- intermediate/int__drug_immunisations.sqlx expects.
+
+SELECT
+    i.id AS immunization_id
+    , COALESCE(
+        i.patient.patientId,
+        REGEXP_EXTRACT(i.patient.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        i.encounter.encounterId,
+        REGEXP_EXTRACT(i.encounter.reference, r'Encounter/(.+)')
+    ) AS encounter_id
+    , SAFE_CAST(i.occurrenceDateTime AS TIMESTAMP) AS immunization_date
+    , (SELECT code.code FROM UNNEST(i.vaccineCode.coding) AS code LIMIT 1) AS immunization_code
+    , (SELECT code.display FROM UNNEST(i.vaccineCode.coding) AS code LIMIT 1) AS immunization_description
+    -- no FHIR core cost equivalent - documented gap
+    , CAST(NULL AS NUMERIC) AS immunization_base_cost
+
+FROM ${ref("Immunization")} AS i

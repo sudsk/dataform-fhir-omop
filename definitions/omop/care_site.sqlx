@@ -1,0 +1,16 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    ROW_NUMBER() OVER (ORDER BY org.organization_id) AS care_site_id
+    , SUBSTR(org.organization_name, 1, 255) AS care_site_name
+    , CAST(null AS INT64) AS place_of_service_concept_id
+    , loc.location_id
+    , SUBSTR(org.organization_id, 1, 50) AS care_site_source_value
+    , CAST(null AS STRING) AS place_of_service_source_value
+FROM ${ref("stg_fhir__organization")} AS org
+LEFT JOIN ${ref("location")} AS loc
+    ON
+        loc.location_source_value = ${utils.safeHash(["organization_address", "organization_city", "organization_state", "organization_zip"])}

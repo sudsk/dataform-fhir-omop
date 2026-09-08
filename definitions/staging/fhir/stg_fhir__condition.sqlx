@@ -1,0 +1,33 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Condition resource into one row per condition, shaped to feed intermediate/int__observation_conditions.sqlx and omop/condition_occurrence.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+
+SELECT
+    c.id AS condition_id
+    , COALESCE(
+        c.subject.patientId,
+        REGEXP_EXTRACT(c.subject.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        c.encounter.encounterId,
+        REGEXP_EXTRACT(c.encounter.reference, r'Encounter/(.+)')
+    ) AS encounter_id
+
+    -- Condition.onsetDateTime / abatementDateTime map to Synthea's
+    -- start/stop; onset can also be onsetPeriod/onsetAge/onsetString in
+    -- FHIR - only onsetDateTime is handled here (the common case for
+    -- Cloud Healthcare API-authored data).
+    , SAFE_CAST(c.onsetDateTime AS DATE) AS condition_start_date
+    , SAFE_CAST(c.abatementDateTime AS DATE) AS condition_stop_date
+
+    -- Condition.code is a single CodeableConcept - take the first coding
+    , (SELECT code.code FROM UNNEST(c.code.coding) AS code LIMIT 1) AS condition_code
+    , (SELECT code.display FROM UNNEST(c.code.coding) AS code LIMIT 1) AS condition_description
+
+FROM ${ref("Condition")} AS c

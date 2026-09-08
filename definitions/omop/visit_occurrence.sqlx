@@ -1,0 +1,30 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    visit_occurrence_id
+    , person_id
+    , CASE
+        WHEN lower(visit_class) = 'er+ip' THEN 262
+        WHEN lower(visit_class) IN ('ambulatory', 'wellness', 'outpatient') THEN 9202
+        WHEN lower(visit_class) IN ('emergency', 'urgentcare') THEN 9203
+        WHEN lower(visit_class) = 'inpatient' THEN 9201
+        ELSE 0
+    END AS visit_concept_id
+    , visit_start_date
+    , CAST(NULL AS TIMESTAMP) AS visit_start_datetime
+    , visit_end_date
+    , CAST(NULL AS TIMESTAMP) AS visit_end_datetime
+    , 32827 AS visit_type_concept_id
+    , CAST(NULL AS INT64)  AS provider_id
+    , CAST(NULL AS INT64)  AS care_site_id
+    , SUBSTR(visit_class, 1, 50) AS visit_source_value
+    , 0 AS visit_source_concept_id
+    , CAST(NULL AS INT64) AS admitted_from_concept_id
+    , CAST(NULL AS STRING) AS admitted_from_source_value
+    , CAST(NULL AS INT64) AS discharged_to_concept_id
+    , CAST(NULL AS STRING) AS discharged_to_source_value
+    , CAST(NULL AS INT64) AS preceding_visit_occurrence_id
+FROM ${ref("int__visits")}

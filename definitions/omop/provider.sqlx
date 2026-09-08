@@ -1,0 +1,20 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    provider_id
+    , SUBSTR(provider_name, 1, 255) AS provider_name
+    , CAST(null AS STRING) AS npi
+    , CAST(null AS STRING) AS dea
+    , 0 AS specialty_concept_id
+    , CAST(null AS INT64) AS care_site_id
+    , CAST(null AS INT64) AS year_of_birth
+    , gender_concept_id
+    , provider_source_value
+    , SUBSTR(specialty_source_value, 1, 50) AS specialty_source_value
+    , 0 AS specialty_source_concept_id
+    , gender_source_value
+    , gender_source_concept_id
+FROM ${ref("int__provider")}

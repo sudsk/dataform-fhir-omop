@@ -1,0 +1,54 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+WITH all_costs AS (
+
+    SELECT
+        drug_exposure_id AS cost_event_id
+        , 'Drug' AS cost_domain_id
+        , drug_base_cost AS total_cost
+        , drug_paid_by_payer AS paid_by_payer
+    FROM ${ref("int__drug_exposure")}
+    UNION ALL
+    SELECT
+        procedure_occurrence_id AS cost_event_id
+        , 'Procedure' AS cost_domain_id
+        , procedure_base_cost AS total_cost
+        , CAST(null AS FLOAT64) AS paid_by_payer
+    FROM ${ref("int__procedure_occurrence")}
+    UNION ALL
+    SELECT
+        visit_detail_id AS cost_event_id
+        , 'Visit' AS cost_domain_id
+        , total_encounter_cost AS total_cost
+        , encounter_payer_coverage AS paid_by_payer
+    FROM ${ref("int__visit_detail")}
+
+)
+
+SELECT
+    row_number() OVER (ORDER BY cost_domain_id, cost_event_id) AS cost_id
+    , cost_event_id
+    , cost_domain_id
+    , 32814 AS cost_type_concept_id
+    , 44818668 AS currency_concept_id
+    , CAST(null AS FLOAT64) AS total_charge
+    , total_cost
+    , CAST(null AS FLOAT64) AS total_paid
+    , paid_by_payer
+    , CAST(null AS FLOAT64) AS paid_by_patient
+    , CAST(null AS FLOAT64) AS paid_patient_copay
+    , CAST(null AS FLOAT64) AS paid_patient_coinsurance
+    , CAST(null AS FLOAT64) AS paid_patient_deductible
+    , CAST(null AS FLOAT64) AS paid_by_primary
+    , CAST(null AS FLOAT64) AS paid_ingredient_cost
+    , CAST(null AS FLOAT64) AS paid_dispensing_fee
+    , CAST(null AS INT64) AS payer_plan_period_id
+    , CAST(null AS FLOAT64) AS amount_allowed
+    , CAST(null AS INT64) AS revenue_code_concept_id
+    , CAST(null AS STRING) AS revenue_code_source_value
+    , CAST(null AS INT64) AS drg_concept_id
+    , CAST(null AS STRING) AS drg_source_value
+FROM all_costs

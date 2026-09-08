@@ -1,0 +1,49 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR MedicationRequest resource into one row per prescription, shaped to feed intermediate/int__drug_medications.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+--
+-- MedicationRequest.medication is an [x] type: medicationCodeableConcept
+-- (code inline) or medicationReference (points at a separate Medication
+-- resource, which this pipeline does not join in - if your export uses
+-- medicationReference exclusively, medication_code below will come back
+-- NULL and you'll need to add a join to the Medication resource table).
+-- dosageInstruction/dispenseRequest give start/end timing; cost fields have
+-- no FHIR core equivalent (billing data lives in Claim resources, out of
+-- scope here).
+
+SELECT
+    m.id AS medication_request_id
+    , COALESCE(
+        m.subject.patientId,
+        REGEXP_EXTRACT(m.subject.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , COALESCE(
+        m.encounter.encounterId,
+        REGEXP_EXTRACT(m.encounter.reference, r'Encounter/(.+)')
+    ) AS encounter_id
+
+    , (SELECT code.code FROM UNNEST(m.medicationCodeableConcept.coding) AS code LIMIT 1) AS medication_code
+    , (SELECT code.display FROM UNNEST(m.medicationCodeableConcept.coding) AS code LIMIT 1) AS medication_description
+
+    , SAFE_CAST(COALESCE(
+        m.dispenseRequest.validityPeriod.start,
+        m.authoredOn
+    ) AS DATE) AS medication_start_date
+    , SAFE_CAST(COALESCE(
+        m.dispenseRequest.validityPeriod.start,
+        m.authoredOn
+    ) AS TIMESTAMP) AS medication_start_datetime
+    , SAFE_CAST(m.dispenseRequest.validityPeriod.end AS DATE) AS medication_stop_date
+    , SAFE_CAST(m.dispenseRequest.validityPeriod.end AS TIMESTAMP) AS medication_stop_datetime
+
+    -- no FHIR core cost equivalent - documented gap
+    , CAST(NULL AS NUMERIC) AS medication_base_cost
+    , CAST(NULL AS NUMERIC) AS medication_payer_coverage
+
+FROM ${ref("MedicationRequest")} AS m

@@ -1,0 +1,19 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    location_id
+    , SUBSTR(address_1, 1, 50) AS address_1
+    , CAST(null AS STRING) AS address_2
+    , SUBSTR(city, 1, 50) AS city
+    , state
+    , zip
+    , SUBSTR(county, 1, 20) AS county
+    , SUBSTR(location_source_value, 1, 50) AS location_source_value
+    , CAST(null AS INT64) AS country_concept_id
+    , CAST(null AS STRING) AS country_source_value
+    , CAST(null AS FLOAT64) AS latitude
+    , CAST(null AS FLOAT64) AS longitude
+FROM ${ref("int__location")}

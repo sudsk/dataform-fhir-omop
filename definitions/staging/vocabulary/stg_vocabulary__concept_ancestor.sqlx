@@ -1,0 +1,7 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgVocabDataset,
+  description: "Thin passthrough view over the concept_ancestor_seed vocabulary seed table. Ported from OHDSI/dbt-synthea's stg_vocabulary__concept_ancestor.sql, simplified: the dbt source used a dbt_utils.get_filtered_columns_in_relation() + lowercase_columns() macro pair to defensively lowercase column names at compile time (a dbt/warehouse-introspection trick with no Dataform equivalent) - unnecessary here because scripts/load_seeds_to_bq.sh loads the seed CSVs with already-lowercase column names matching OHDSI/dbt-synthea's dbt_project.yml vocab_tables spec, so this is just a SELECT *."
+}
+
+SELECT * FROM ${ref("concept_ancestor_seed")}

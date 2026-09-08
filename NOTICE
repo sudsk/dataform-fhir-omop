@@ -1,0 +1,37 @@
+dataform-fhir-omop
+Copyright 2026 the project contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This project ports SQL logic, table designs, and reference patterns from the
+following Apache-2.0-licensed open source projects. Neither project endorses
+or is affiliated with this project; both are credited here per Apache 2.0
+attribution norms.
+
+1. OHDSI/dbt-synthea
+   https://github.com/OHDSI/dbt-synthea
+   Copyright OHDSI (Observational Health Data Sciences and Informatics)
+   Licensed under the Apache License, Version 2.0.
+
+   This project's definitions/intermediate/*.sqlx and definitions/omop/*.sqlx
+   files are a mechanical port of dbt-synthea's models/intermediate/*.sql and
+   models/omop/*.sql (dbt Jinja/SQL translated to Dataform SQLX syntax; the
+   OMOP CDM table designs and vocabulary-standardization business logic are
+   preserved). definitions/staging/vocabulary/*.sqlx and
+   definitions/staging/map/*.sqlx are likewise ported from dbt-synthea's
+   models/staging/vocabulary/*.sql and models/staging/map/*.sql. The CSVs
+   under seeds/ are copied verbatim from dbt-synthea's seeds/ directory.
+
+2. google/fhir-dbt-utils
+   https://github.com/google/fhir-dbt-utils
+   Copyright Google LLC
+   Licensed under the Apache License, Version 2.0.
+
+   This project's definitions/staging/fhir/*.sqlx files draw on the FHIR
+   field-extraction idioms demonstrated in fhir-dbt-utils' macros (notably
+   macros/fhir_analysis_macros/code_from_codeableconcept.sql, identifier.sql,
+   full_address.sql, value_from_component.sql, and official_name.sql), hand
+   -written as static BigQuery SQL rather than using fhir-dbt-utils' dynamic,
+   dbt-compile-time warehouse-introspection macros directly (Dataform has no
+   equivalent to dbt's adapter.get_columns_in_relation() at compile time -
+   see README.md for details on this simplification).

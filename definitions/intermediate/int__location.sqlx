@@ -1,0 +1,40 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.intDataset
+}
+
+-- Dataform has no equivalent to dbt's Jinja {% set %} + macro-call idiom, so
+-- the address_columns list used by the source dbt-synthea model is inlined
+-- directly into the safe_hash() SUBSTR/CONCAT expression below.
+
+WITH unioned_location_sources AS (
+    SELECT DISTINCT
+        p.patient_address AS address_1
+        , p.patient_city AS city
+        , s.state_abbreviation AS state
+        , p.patient_zip AS zip
+        , p.patient_county AS county
+    FROM ${ref("stg_fhir__patient")} AS p
+    LEFT JOIN ${ref("stg_map__states")} AS s ON p.patient_state = s.state_name
+
+    UNION
+
+    SELECT DISTINCT
+        organization_address AS address_1
+        , organization_city AS city
+        , organization_state AS state
+        , organization_zip AS zip
+        , CAST(null AS STRING) AS county
+    FROM
+        ${ref("stg_fhir__organization")}
+)
+
+SELECT
+    row_number() OVER (ORDER BY state, city, address_1) AS location_id
+    , address_1
+    , city
+    , state
+    , REPLACE(zip, '-', '') AS zip
+    , county
+    , ${utils.safeHash(["address_1", "city", "state", "zip", "county"])} AS location_source_value
+FROM unioned_location_sources

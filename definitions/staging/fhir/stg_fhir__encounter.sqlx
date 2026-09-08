@@ -1,0 +1,76 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "Flattens the FHIR Encounter resource into one row per encounter, shaped to feed intermediate/int__encounters.sqlx."
+}
+
+-- Field paths are illustrative of the Analytics V2 export shape - validate
+-- against your actual FHIR store's BigQuery export before running against
+-- real data.
+--
+-- Encounter.subject/participant/serviceProvider are Reference structs whose
+-- literal reference string looks like "Patient/123"; Analytics V2 sometimes
+-- additionally exposes a resolved `patientId` convenience field alongside
+-- `reference`. This model prefers `patientId` where present and falls back
+-- to parsing `reference` otherwise - check which your export actually has.
+
+SELECT
+    e.id AS encounter_id
+
+    , COALESCE(
+        e.subject.patientId,
+        REGEXP_EXTRACT(e.subject.reference, r'Patient/(.+)')
+    ) AS patient_id
+
+    -- first participant's individual practitioner reference
+    , COALESCE(
+        (SELECT pt.individual.practitionerId FROM UNNEST(e.participant) AS pt LIMIT 1),
+        (SELECT REGEXP_EXTRACT(pt.individual.reference, r'Practitioner/(.+)') FROM UNNEST(e.participant) AS pt LIMIT 1)
+    ) AS provider_id
+
+    -- payer: not a native Encounter field: commonly threaded through via a
+    -- Coverage reference on an associated Claim/ExplanationOfBenefit, or a
+    -- local extension. Left NULL here - populate via your Coverage linkage
+    -- if you need payer_id all the way through the OMOP visit tables.
+    , CAST(NULL AS STRING) AS payer_id
+
+    , SAFE_CAST(e.period.start AS TIMESTAMP) AS encounter_start_datetime
+    , SAFE_CAST(e.period.start AS DATE) AS encounter_start_date
+    , SAFE_CAST(e.period.end AS TIMESTAMP) AS encounter_stop_datetime
+    , SAFE_CAST(e.period.end AS DATE) AS encounter_stop_date
+
+    -- Encounter.class is a single Coding (not an array) in R4
+    , LOWER(e.class.code) AS encounter_class
+
+    -- Encounter.type is an array of CodeableConcept; take the first coding of the first type
+    , (
+        SELECT c.code
+        FROM UNNEST(e.type) AS t, UNNEST(t.coding) AS c
+        LIMIT 1
+    ) AS encounter_code
+    , (
+        SELECT c.display
+        FROM UNNEST(e.type) AS t, UNNEST(t.coding) AS c
+        LIMIT 1
+    ) AS encounter_description
+
+    -- cost fields have no FHIR core equivalent (they come from
+    -- Claim/ExplanationOfBenefit resources, out of scope here) - left NULL,
+    -- documented gap consistent with a FHIR-sourced (non-billing) pipeline.
+    , CAST(NULL AS NUMERIC) AS base_encounter_cost
+    , CAST(NULL AS NUMERIC) AS total_encounter_cost
+    , CAST(NULL AS NUMERIC) AS encounter_payer_coverage
+
+    -- Encounter.reasonCode is an array of CodeableConcept
+    , (
+        SELECT c.code
+        FROM UNNEST(e.reasonCode) AS rc, UNNEST(rc.coding) AS c
+        LIMIT 1
+    ) AS encounter_reason_code
+    , (
+        SELECT c.display
+        FROM UNNEST(e.reasonCode) AS rc, UNNEST(rc.coding) AS c
+        LIMIT 1
+    ) AS encounter_reason_description
+
+FROM ${ref("Encounter")} AS e

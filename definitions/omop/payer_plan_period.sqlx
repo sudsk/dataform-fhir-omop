@@ -1,0 +1,36 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+-- NOTE: dbt-synthea's source model split payer info across two Synthea CSVs
+-- (payers.csv + payer_transitions.csv). The FHIR analog is a single Coverage
+-- resource, so this port collapses both into one stg_fhir__coverage staging
+-- model (see definitions/staging/fhir/stg_fhir__coverage.sqlx - currently a
+-- documented stub, since Coverage was not in the required FHIR staging
+-- scope for this reference project).
+SELECT
+    row_number()
+        OVER (ORDER BY pat.patient_id, cov.coverage_start_datetime)
+    AS payer_plan_period_id
+    , per.person_id
+    , cov.coverage_start_date AS payer_plan_period_start_date
+    , cov.coverage_end_date AS payer_plan_period_end_date
+    , CAST(null AS INT64) AS payer_concept_id
+    , SUBSTR(cov.payer_id, 1, 50) AS payer_source_value
+    , CAST(null AS INT64) AS payer_source_concept_id
+    , CAST(null AS INT64) AS plan_concept_id
+    , SUBSTR(cov.payer_name, 1, 50) AS plan_source_value
+    , CAST(null AS INT64) AS plan_source_concept_id
+    , CAST(null AS INT64) AS sponsor_concept_id
+    , CAST(null AS STRING) AS sponsor_source_value
+    , CAST(null AS INT64) AS sponsor_source_concept_id
+    , CAST(null AS STRING) AS family_source_value
+    , CAST(null AS INT64) AS stop_reason_concept_id
+    , CAST(null AS STRING) AS stop_reason_source_value
+    , CAST(null AS INT64) AS stop_reason_source_concept_id
+FROM ${ref("stg_fhir__coverage")} AS cov
+INNER JOIN ${ref("stg_fhir__patient")} AS pat
+    ON cov.patient_id = pat.patient_id
+INNER JOIN ${ref("person")} AS per
+    ON pat.patient_id = per.person_source_value

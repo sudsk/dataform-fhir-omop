@@ -1,0 +1,14 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    CAST(null AS INT64) AS dose_era_id
+    , CAST(null AS INT64) AS person_id
+    , CAST(null AS INT64) AS drug_concept_id
+    , CAST(null AS INT64) AS unit_concept_id
+    , CAST(null AS FLOAT64) AS dose_value
+    , CAST(null AS DATE) AS dose_era_start_date
+    , CAST(null AS DATE) AS dose_era_end_date
+WHERE 1 = 0

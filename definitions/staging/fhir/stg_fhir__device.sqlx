@@ -1,0 +1,32 @@
+config {
+  type: "view",
+  schema: dataform.projectConfig.vars.stgFhirDataset,
+  description: "STUB: minimal Device flattening view, kept only so omop/device_exposure.sqlx compiles and runs (returning zero rows) out of the box."
+}
+
+-- SCOPE NOTE: Device was not one of the 10 FHIR resources in this project's
+-- required staging scope, so this is a real-but-minimal flattening view
+-- rather than the fully-considered treatment given to stg_fhir__*.sqlx for
+-- the in-scope resources. Column shape matches what
+-- omop/device_exposure.sqlx expects. FHIR's Device resource models a single
+-- physical device record, not an "administration event" the way Synthea's
+-- devices.csv did (start/stop of use) - UDI/identifier and patient linkage
+-- are more naturally found on a DeviceUseStatement or DeviceRequest
+-- resource in a real deployment; treat device_start_date/device_stop_date
+-- below as illustrative placeholders pending that modeling decision.
+
+SELECT
+    d.id AS device_id
+    , COALESCE(
+        d.patient.patientId,
+        REGEXP_EXTRACT(d.patient.reference, r'Patient/(.+)')
+    ) AS patient_id
+    , CAST(NULL AS STRING) AS encounter_id
+    , SAFE_CAST(NULL AS TIMESTAMP) AS device_start_datetime
+    , SAFE_CAST(NULL AS DATE) AS device_start_date
+    , SAFE_CAST(NULL AS TIMESTAMP) AS device_stop_datetime
+    , SAFE_CAST(NULL AS DATE) AS device_stop_date
+    , (SELECT uc.deviceIdentifier FROM UNNEST(d.udiCarrier) AS uc LIMIT 1) AS udi
+    , (SELECT code.code FROM UNNEST(d.type.coding) AS code LIMIT 1) AS device_code
+
+FROM ${ref("Device")} AS d

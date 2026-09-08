@@ -1,0 +1,21 @@
+config {
+  type: "table",
+  schema: dataform.projectConfig.vars.cdmDataset
+}
+
+SELECT
+    CAST(null AS INT64) AS note_nlp_id
+    , CAST(null AS INT64) AS note_id
+    , CAST(null AS INT64) AS section_concept_id
+    , CAST(null AS STRING) AS snippet
+    , CAST(null AS STRING) AS `offset`
+    , CAST(null AS STRING) AS lexical_variant
+    , CAST(null AS INT64) AS note_nlp_concept_id
+    , CAST(null AS INT64) AS note_nlp_source_concept_id
+    , CAST(null AS STRING) AS nlp_system
+    , CAST(null AS DATE) AS nlp_date
+    , CAST(null AS TIMESTAMP) AS nlp_datetime
+    , CAST(null AS STRING) AS term_exists
+    , CAST(null AS STRING) AS term_temporal
+    , CAST(null AS STRING) AS term_modifiers
+WHERE 1 = 0
