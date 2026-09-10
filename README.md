@@ -1,4 +1,4 @@
-# dataform-fhir-omop
+# Dataform (FHIR -> OMOP)
 
 A reference Dataform/BigQuery pipeline that transforms FHIR data - landed in
 BigQuery via the Google Cloud Healthcare API's **Analytics V2** export (one
