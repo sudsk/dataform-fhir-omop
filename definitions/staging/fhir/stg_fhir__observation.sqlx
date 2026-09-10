@@ -8,10 +8,13 @@ config {
 -- against your actual FHIR store's BigQuery export before running against
 -- real data.
 --
--- Observation.value is a FHIR "open" [x] type (valueQuantity / valueString /
--- valueCodeableConcept / ...). This flattens only the two most common
--- clinical-observation shapes (valueQuantity, valueString) into a single
--- observation_value/observation_units pair - a component-level
+-- Observation.value[x] is a FHIR choice type (valueQuantity / valueString /
+-- valueCodeableConcept / ...). Analytics V2 materializes it as one RECORD
+-- field named "value" with sub-fields quantity/string/codeableConcept/
+-- boolean/integer/dateTime/period/range/ratio/sampledData/time - NOT
+-- sibling fields valueQuantity/valueString. This flattens only the two most
+-- common clinical-observation shapes (value.quantity, value.string) into a
+-- single observation_value/observation_units pair - a component-level
 -- (vitals-panel) observation would need the array-of-components idiom from
 -- fhir-dbt-utils' value_from_component macro instead, which this reference
 -- pipeline does not replicate (see README caveats).
@@ -39,11 +42,11 @@ SELECT
     , (SELECT code.code FROM UNNEST(o.code.coding) AS code LIMIT 1) AS observation_code
     , (SELECT code.display FROM UNNEST(o.code.coding) AS code LIMIT 1) AS observation_description
 
-    -- value: prefer numeric valueQuantity, fall back to valueString
+    -- value: prefer numeric value.quantity, fall back to value.string
     , COALESCE(
-        CAST(o.valueQuantity.value AS STRING),
-        o.valueString
+        CAST(o.value.quantity.value AS STRING),
+        o.value.string
     ) AS observation_value
-    , o.valueQuantity.unit AS observation_units
+    , o.value.quantity.unit AS observation_units
 
 FROM ${ref("Observation")} AS o
