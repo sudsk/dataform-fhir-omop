@@ -19,7 +19,11 @@ SELECT
         REGEXP_EXTRACT(a.encounter.reference, r'Encounter/(.+)')
     ) AS encounter_id
 
-    , SAFE_CAST(a.onsetDateTime AS DATE) AS allergy_start_date
+    -- AllergyIntolerance.onset[x] is a FHIR choice type. Analytics V2
+    -- materializes it as one RECORD field named "onset" with sub-fields
+    -- dateTime/period/age/range/string - NOT a sibling field
+    -- onsetDateTime.
+    , SAFE_CAST(a.onset.dateTime AS DATE) AS allergy_start_date
 
     , (SELECT code.code FROM UNNEST(a.code.coding) AS code LIMIT 1) AS allergy_code
     , (SELECT code.display FROM UNNEST(a.code.coding) AS code LIMIT 1) AS allergy_description

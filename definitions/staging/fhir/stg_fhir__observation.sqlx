@@ -27,8 +27,13 @@ SELECT
         REGEXP_EXTRACT(o.encounter.reference, r'Encounter/(.+)')
     ) AS encounter_id
 
-    , SAFE_CAST(o.effectiveDateTime AS DATE) AS observation_date
-    , SAFE_CAST(o.effectiveDateTime AS TIMESTAMP) AS observation_datetime
+    -- Observation.effective[x] is a FHIR choice type. Analytics V2
+    -- materializes it as one RECORD field named "effective" with sub-fields
+    -- dateTime/instant/period/timing - NOT a sibling field
+    -- effectiveDateTime. Only the dateTime sub-field is handled here;
+    -- effectiveInstant/effectivePeriod/effectiveTiming are a documented gap.
+    , SAFE_CAST(o.effective.dateTime AS DATE) AS observation_date
+    , SAFE_CAST(o.effective.dateTime AS TIMESTAMP) AS observation_datetime
 
     -- Observation.code is a single CodeableConcept (typically LOINC)
     , (SELECT code.code FROM UNNEST(o.code.coding) AS code LIMIT 1) AS observation_code

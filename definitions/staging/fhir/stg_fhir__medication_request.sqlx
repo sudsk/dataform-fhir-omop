@@ -8,11 +8,13 @@ config {
 -- against your actual FHIR store's BigQuery export before running against
 -- real data.
 --
--- MedicationRequest.medication is an [x] type: medicationCodeableConcept
--- (code inline) or medicationReference (points at a separate Medication
--- resource, which this pipeline does not join in - if your export uses
--- medicationReference exclusively, medication_code below will come back
--- NULL and you'll need to add a join to the Medication resource table).
+-- MedicationRequest.medication[x] is a FHIR choice type. Analytics V2
+-- materializes it as one RECORD field named "medication" with sub-fields
+-- codeableConcept (code inline) / reference (points at a separate
+-- Medication resource, which this pipeline does not join in) - NOT sibling
+-- fields medicationCodeableConcept/medicationReference. If your export uses
+-- medication.reference exclusively, medication_code below will come back
+-- NULL and you'll need to add a join to the Medication resource table.
 -- dosageInstruction/dispenseRequest give start/end timing; cost fields have
 -- no FHIR core equivalent (billing data lives in Claim resources, out of
 -- scope here).
@@ -28,8 +30,8 @@ SELECT
         REGEXP_EXTRACT(m.encounter.reference, r'Encounter/(.+)')
     ) AS encounter_id
 
-    , (SELECT code.code FROM UNNEST(m.medicationCodeableConcept.coding) AS code LIMIT 1) AS medication_code
-    , (SELECT code.display FROM UNNEST(m.medicationCodeableConcept.coding) AS code LIMIT 1) AS medication_description
+    , (SELECT code.code FROM UNNEST(m.medication.codeableConcept.coding) AS code LIMIT 1) AS medication_code
+    , (SELECT code.display FROM UNNEST(m.medication.codeableConcept.coding) AS code LIMIT 1) AS medication_description
 
     , SAFE_CAST(COALESCE(
         m.dispenseRequest.validityPeriod.start,

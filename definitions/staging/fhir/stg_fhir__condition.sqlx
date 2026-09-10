@@ -19,12 +19,15 @@ SELECT
         REGEXP_EXTRACT(c.encounter.reference, r'Encounter/(.+)')
     ) AS encounter_id
 
-    -- Condition.onsetDateTime / abatementDateTime map to Synthea's
-    -- start/stop; onset can also be onsetPeriod/onsetAge/onsetString in
-    -- FHIR - only onsetDateTime is handled here (the common case for
-    -- Cloud Healthcare API-authored data).
-    , SAFE_CAST(c.onsetDateTime AS DATE) AS condition_start_date
-    , SAFE_CAST(c.abatementDateTime AS DATE) AS condition_stop_date
+    -- Condition.onset[x] / abatement[x] are FHIR choice types. Analytics V2
+    -- materializes each as one RECORD field named after the base ("onset",
+    -- "abatement") with sub-fields dateTime/period/age/range/string - NOT
+    -- sibling fields onsetDateTime/abatementDateTime. Only the dateTime
+    -- sub-field is handled here (the common case); onsetPeriod/onsetAge/
+    -- onsetString are a documented gap - condition_start_date will come
+    -- back NULL for those.
+    , SAFE_CAST(c.onset.dateTime AS DATE) AS condition_start_date
+    , SAFE_CAST(c.abatement.dateTime AS DATE) AS condition_stop_date
 
     -- Condition.code is a single CodeableConcept - take the first coding
     , (SELECT code.code FROM UNNEST(c.code.coding) AS code LIMIT 1) AS condition_code

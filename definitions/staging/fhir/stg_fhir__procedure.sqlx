@@ -8,9 +8,11 @@ config {
 -- against your actual FHIR store's BigQuery export before running against
 -- real data.
 --
--- Procedure.performed is an [x] type: performedDateTime (point in time) or
--- performedPeriod (start/end). This handles both, coalescing to
--- performedDateTime for a point-in-time procedure with no stop date.
+-- Procedure.performed[x] is a FHIR choice type. Analytics V2 materializes
+-- it as one RECORD field named "performed" with sub-fields
+-- dateTime/period/age/range/string - NOT sibling fields
+-- performedDateTime/performedPeriod. This handles dateTime and period,
+-- coalescing to dateTime for a point-in-time procedure with no stop date.
 
 SELECT
     p.id AS procedure_id
@@ -23,10 +25,10 @@ SELECT
         REGEXP_EXTRACT(p.encounter.reference, r'Encounter/(.+)')
     ) AS encounter_id
 
-    , SAFE_CAST(COALESCE(p.performedPeriod.start, p.performedDateTime) AS DATE) AS procedure_start_date
-    , SAFE_CAST(COALESCE(p.performedPeriod.start, p.performedDateTime) AS TIMESTAMP) AS procedure_start_datetime
-    , SAFE_CAST(COALESCE(p.performedPeriod.end, p.performedDateTime) AS DATE) AS procedure_stop_date
-    , SAFE_CAST(COALESCE(p.performedPeriod.end, p.performedDateTime) AS TIMESTAMP) AS procedure_stop_datetime
+    , SAFE_CAST(COALESCE(p.performed.period.start, p.performed.dateTime) AS DATE) AS procedure_start_date
+    , SAFE_CAST(COALESCE(p.performed.period.start, p.performed.dateTime) AS TIMESTAMP) AS procedure_start_datetime
+    , SAFE_CAST(COALESCE(p.performed.period.end, p.performed.dateTime) AS DATE) AS procedure_stop_date
+    , SAFE_CAST(COALESCE(p.performed.period.end, p.performed.dateTime) AS TIMESTAMP) AS procedure_stop_datetime
 
     , (SELECT code.code FROM UNNEST(p.code.coding) AS code LIMIT 1) AS procedure_code
     , (SELECT code.display FROM UNNEST(p.code.coding) AS code LIMIT 1) AS procedure_description

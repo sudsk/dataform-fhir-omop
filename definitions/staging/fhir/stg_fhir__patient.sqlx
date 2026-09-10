@@ -27,8 +27,12 @@ SELECT
     -- --- demographics ---
     , SAFE_CAST(p.birthDate AS DATE) AS birth_date
     , p.gender AS patient_gender
-    , SAFE_CAST(p.deceasedDateTime AS TIMESTAMP) AS deceased_datetime
-    , p.deceasedBoolean AS deceased_boolean
+    -- Patient.deceased[x] (a FHIR choice type) materializes in Analytics V2
+    -- as one RECORD field named after the base ("deceased"), with each
+    -- possible type as a sub-field - NOT sibling fields
+    -- deceasedDateTime/deceasedBoolean. Confirmed against a real export.
+    , SAFE_CAST(p.deceased.dateTime AS TIMESTAMP) AS deceased_datetime
+    , p.deceased.boolean AS deceased_boolean
 
     -- --- US Core race extension: extension[url=...-race].extension[url='ombCategory'].valueCoding.display ---
     , (

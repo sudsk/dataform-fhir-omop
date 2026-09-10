@@ -108,6 +108,20 @@ not a finished mapping.
   (this project's Patient race/ethnicity extraction, for instance, assumes
   US Core extensions). **Validate every field path against your actual FHIR
   store's BigQuery export schema before running this against real data.**
+  In particular: every FHIR **choice-type field** (any element named
+  `foo[x]` in the spec - `Patient.deceased[x]`, `Condition.onset[x]`,
+  `Observation.effective[x]`, `MedicationRequest.medication[x]`,
+  `Procedure.performed[x]`, `AllergyIntolerance.onset[x]`,
+  `Immunization.occurrence[x]`, etc.) has been confirmed against a real
+  Analytics V2 export to materialize as **one RECORD field named after the
+  base name, with each possible type as a sub-field** - e.g.
+  `deceased.dateTime` / `deceased.boolean`, NOT sibling columns
+  `deceasedDateTime` / `deceasedBoolean`. Every `[x]` field in this repo's
+  `staging/fhir/*.sqlx` files already uses this RECORD-with-sub-field
+  pattern; if you hit a `Name ... not found` compile/run error on a
+  resource type not covered here, look for the same shape (`bq show
+  --schema` the table, look for a RECORD field named after the FHIR
+  element's base name).
 - **Dynamic schema handling was intentionally not replicated.**
   fhir-dbt-utils does column introspection and multi-table-per-resource
   union handling at dbt-compile-time via `adapter.get_columns_in_relation()`.

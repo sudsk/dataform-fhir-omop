@@ -23,7 +23,10 @@ SELECT
         i.encounter.encounterId,
         REGEXP_EXTRACT(i.encounter.reference, r'Encounter/(.+)')
     ) AS encounter_id
-    , SAFE_CAST(i.occurrenceDateTime AS TIMESTAMP) AS immunization_date
+    -- Immunization.occurrence[x] is a FHIR choice type. Analytics V2
+    -- materializes it as one RECORD field named "occurrence" with
+    -- sub-fields dateTime/string - NOT a sibling field occurrenceDateTime.
+    , SAFE_CAST(i.occurrence.dateTime AS TIMESTAMP) AS immunization_date
     , (SELECT code.code FROM UNNEST(i.vaccineCode.coding) AS code LIMIT 1) AS immunization_code
     , (SELECT code.display FROM UNNEST(i.vaccineCode.coding) AS code LIMIT 1) AS immunization_description
     -- no FHIR core cost equivalent - documented gap
